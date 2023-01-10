@@ -193,7 +193,7 @@ services:
             - "docker-volume-backup.stop-during-backup=true"
             - "docker-volume-backup.archive-pre=/bin/sh -c 'mysqldump -uroot -p${MYSQL_ROOT_PASSWORD} --all-databases > /tmp/backup/db_backup_data.sql'"
             - "docker-volume-backup.exec-label=database"
-        command: "mariadbd --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --default-authentication-plugin=mysql_native_password && sed -i 's/pma_username/${PMA_CONTROLUSER}/g;s/pma_password/${PMA_CONTROLPASS}/' /docker-entrypoint-initdb.d/create_tables.sql"
+        command: bash -c "sed -i 's/pma_username/${PMA_CONTROLUSER}/g;s/pma_password/${PMA_CONTROLPASS}/' /docker-entrypoint-initdb.d/create_tables.sql && docker-entrypoint.sh 'mariadbd' --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --default-authentication-plugin=mysql_native_password"
     
     backup:
         image: offen/docker-volume-backup:latest
