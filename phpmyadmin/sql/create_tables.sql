@@ -26,7 +26,7 @@ USE phpmyadmin;
 --
 -- Create user for phpmyadmin database
 --
-CREATE USER 'pma_username'@'%' IDENTIFIED VIA mysql_native_password USING '${PMA_CONTROLPASS}';
+CREATE USER 'pma_username'@'%' IDENTIFIED VIA mysql_native_password USING PASSWORD('pma_password');
 
 --
 -- Privileges
