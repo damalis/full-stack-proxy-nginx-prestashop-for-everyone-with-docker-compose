@@ -23,6 +23,19 @@ server {
 	#}
 }
 
+# nginx buffers #
+proxy_redirect	off;
+proxy_buffering	on;
+proxy_buffer_size	128k;
+proxy_buffers	100	8k;
+proxy_connect_timeout	90;
+proxy_send_timeout	90;
+proxy_read_timeout	90;
+proxy_request_buffering off;
+#
+# Mitigate httpoxy attack
+proxy_set_header Proxy "";
+
 server {
 	#listen 443 ssl http2;
 	#listen [::]:443 ipv6only=on ssl http2;
@@ -34,7 +47,25 @@ server {
 	#ssl_trusted_certificate /etc/letsencrypt/live/${NGINX_HOST}/chain.pem;
 	#ssl_dhparam /etc/letsencrypt/ssl-dhparam.pem;
 	include /etc/letsencrypt/options-ssl-nginx.conf;
-	  
+	
+	# [EDIT] Replace 'admin-dev' in this block with the name of your admin directory.
+	location /admin/ {
+		if (!-e $request_filename) {
+			rewrite ^ /admin-dev/index.php last;
+		}
+	
+		proxy_pass	http://docker_webserver;		
+		proxy_set_header	X-Real-IP	$remote_addr;
+		proxy_set_header	X-Forwarded-For	$proxy_add_x_forwarded_for;
+		proxy_set_header	X-Forwarded-Proto	$scheme;		
+		proxy_set_header	Host	$host;
+		proxy_set_header	X-Forwarded-Host	$host;
+		proxy_set_header	X-Forwarded-Port	$server_port;
+		proxy_set_header	Upgrade	$http_upgrade;
+		proxy_set_header	Connection	"Upgrade";		
+		proxy_set_header	X-Forwarded-Ssl	$proxy_x_forwarded_ssl;		        
+	}
+	
 	location / {		
 		proxy_pass	http://docker_webserver;		
 		proxy_set_header	X-Real-IP	$remote_addr;
@@ -45,19 +76,7 @@ server {
 		proxy_set_header	X-Forwarded-Port	$server_port;
 		proxy_set_header	Upgrade	$http_upgrade;
 		proxy_set_header	Connection	"Upgrade";		
-		proxy_set_header	X-Forwarded-Ssl	$proxy_x_forwarded_ssl;
-		#
-		proxy_redirect	off;
-		proxy_buffering	on;
-		proxy_buffer_size	128k;
-		proxy_buffers	100	8k;
-		proxy_connect_timeout	90;
-		proxy_send_timeout	90;
-		proxy_read_timeout	90;
-		proxy_request_buffering off;
-		#
-		# Mitigate httpoxy attack
-		proxy_set_header Proxy "";        
+		proxy_set_header	X-Forwarded-Ssl	$proxy_x_forwarded_ssl;        
 	}   
 	#
 	access_log off;
