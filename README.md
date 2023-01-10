@@ -221,7 +221,7 @@ https://example.com
 
 #### Admin screen
 
-Replace 'admin' in this block with the name of your admin directory in the ```./webserver/templates/nginx.conf.template```.
+Replace 'admin-dev' in this block with the name of your admin directory in the ```./proxy/templates/proxy.conf.template```.
 
 ```https://example.com/admin```, ```Email address: ${LETSENCRYPT_EMAIL} and Password: ${PMA_HTPASSWD_PASSWORD}``` in the .env file.
 
