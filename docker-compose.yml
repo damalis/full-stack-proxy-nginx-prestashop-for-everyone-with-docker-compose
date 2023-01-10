@@ -2,11 +2,11 @@ version: '3.7'
 
 services:
 
-    fuelphp:
+    prestashop:
         depends_on:
             - database
         image: '${PHP_IMAGE_NAME}'
-        container_name: fuelphp
+        container_name: prestashop
         networks:
             - backend
         volumes:
@@ -17,31 +17,30 @@ services:
             - type: bind
               source: ./php-fpm/php-fpm.d/z-www.conf
               target: '${PHP_INI_DIR_PREFIX}/php-fpm.d/z-www.conf'
-        hostname: fuelphp
+        hostname: prestashop
         restart: unless-stopped
         ports:
             - '9000:80'
         links:
             - database
-            - redis
         healthcheck:
             test: ["CMD-SHELL", "curl -fk https://${DOMAIN_NAME} || exit 1"]
             interval: 10s
             timeout: 5s
-            retries: 3
-            start_period: 60s
+            retries: 10
+            start_period: 100s
         environment:
             TZ: '${LOCAL_TIMEZONE}'
         labels:            
             - 'docker-volume-backup.stop-during-backup=true'
-        command: > 
-            bash -c "apt-get -y update && apt-get install -y zip unzip libicu-dev && docker-php-ext-install mysqli intl; curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer && 
-            if [ -f \"${WEBSERVER_DOC_ROOT}/webapp/oil\" ]; then composer update --working-dir=${WEBSERVER_DOC_ROOT}/webapp; else composer create-project fuel/fuel webapp --prefer-dist --no-install && composer config --working-dir=${WEBSERVER_DOC_ROOT}/webapp allow-plugins.composer/installers true && composer install --working-dir=${WEBSERVER_DOC_ROOT}/webapp && cd ${WEBSERVER_DOC_ROOT}/webapp && php oil refine install; fi; 
-            grep -qe 'date.timezone = ${LOCAL_TIMEZONE}' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini || echo 'date.timezone = ${LOCAL_TIMEZONE}' >> ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; php-fpm"
+        command: >
+            bash -c "apt-get -y update && apt-get install -y libmcrypt-dev libjpeg62-turbo-dev libpcre3-dev libpng-dev libwebp-dev libfreetype6-dev libxml2-dev libicu-dev libzip-dev wget unzip libonig-dev && rm -rf /var/lib/apt/lists/* && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp && docker-php-ext-install iconv intl pdo_mysql soap gd zip bcmath opcache && if pecl install -p -- mcrypt; then pecl install -o -f mcrypt && rm -rf /tmp/pear && docker-php-ext-enable mcrypt; fi && 
+            if [ ! -f \"${WEBSERVER_DOC_ROOT}/index.php\" ]; then chown www-data:www-data ${WEBSERVER_DOC_ROOT} && wget -P /tmp/data-pres https://github.com/PrestaShop/PrestaShop/releases/download/8.0.1/prestashop_8.0.1.zip && unzip -q /tmp/data-pres/prestashop_8.0.1.zip -d /tmp/data-pres && unzip -q /tmp/data-pres/prestashop.zip -d ${WEBSERVER_DOC_ROOT} && chmod -R +w admin/autoupgrade app/config cache config download img mails modules override themes translations upload var && chown www-data:www-data -R admin/autoupgrade app/config cache config download img mails modules override themes translations upload var &&  
+            php ./install/index_cli.php --domain=${DOMAIN_NAME} --db_server=database --db_name=${DB_NAME} --db_user=${DB_USER} --db_password=${DB_PASSWORD} --email=${LETSENCRYPT_EMAIL} --password=${PMA_HTPASSWD_PASSWORD} --prefix=${DB_TABLE_PREFIX} --ssl=1 && rm -rf install; rm -rf /tmp/data-pres; fi; grep -qe 'date.timezone = ${LOCAL_TIMEZONE}' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini || echo 'date.timezone = ${LOCAL_TIMEZONE}' >> ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; php-fpm"
 
     webserver:
         depends_on:
-            - fuelphp
+            - prestashop
         image: 'httpd:latest'
         container_name: webserver
         networks:
@@ -56,7 +55,7 @@ services:
         ports:
             - '8080:80'
         links:
-            - fuelphp
+            - prestashop
         environment:
             TZ: '${LOCAL_TIMEZONE}'
         command: bash -c "sed -i 's/example.com/${DOMAIN_NAME}/g' ${HTTPD_PREFIX}/conf/extra/httpd-vhosts.conf && httpd -t; httpd-foreground"
@@ -190,27 +189,6 @@ services:
             - "docker-volume-backup.exec-label=database"
         command: "--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password"
     
-    redis:
-        image: 'redis:latest'
-        container_name: redis
-        networks:
-            - backend
-        volumes:
-            - 'dtredis:/data'
-            - type: bind
-              source: ./redis
-              target: '${REDIS_CONF_PREFIX}/redis'
-        hostname: redis
-        sysctls:
-            - net.core.somaxconn=512
-        restart: unless-stopped
-        ports:
-            - '6379:6379'
-        environment:
-            ALLOW_EMPTY_PASSWORD: 'yes'
-            TZ: '${LOCAL_TIMEZONE}'
-        command: "redis-server ${REDIS_CONF_PREFIX}/redis/redis.conf"
-    
     backup:
         image: offen/docker-volume-backup:latest
         container_name: backup
@@ -239,18 +217,16 @@ networks:
 
 volumes:
     html:
-        name: fuelphp-html
+        name: prestashop-html
         driver: local
         driver_opts:
             type: none
-            device: ${DIRECTORY_PATH}/fuelphp
+            device: ${DIRECTORY_PATH}/prestashop
             o: bind
     db:
         name: ${DATABASE_CONT_NAME}-data
     db-backup-data:
         name: ${DATABASE_CONT_NAME}-backup-data
-    dtredis:
-        name: redis-data
     certbot-etc:
         external: true        
     certbot-var:
