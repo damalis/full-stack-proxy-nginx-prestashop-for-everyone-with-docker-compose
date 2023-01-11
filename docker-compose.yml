@@ -122,9 +122,6 @@ services:
             - backend
             - frontend
         volumes:
-            - type: bind
-              source: ./phpmyadmin/sql/create_tables.sql
-              target: '${WEBSERVER_DOC_ROOT}/sql/create_tables.sql'
             - 'phpmyadmin:${WEBSERVER_DOC_ROOT}/sql'
             - type: bind
               source: ./phpmyadmin/apache2/sites-available/default-ssl.conf
