@@ -50,7 +50,7 @@ server {
 	
 	location /admin-dev/ {
 		if (!-e $request_filename) {
-			rewrite ^ /admin-dev/index.php last;
+			rewrite ^/admin-dev/?$ /admin-dev/index.php last;
 		}
 	
 		proxy_pass	http://docker_webserver;		
