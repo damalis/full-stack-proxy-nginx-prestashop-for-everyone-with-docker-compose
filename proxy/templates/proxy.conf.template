@@ -51,7 +51,7 @@ server {
 	# [EDIT] Replace 'admin-dev' in this block with the name of your admin directory.
 	location /admin-dev/ {
 		if (!-e $request_filename) {
-			try_files $uri $uri/ /admin-dev/index.php$is_args$args;
+			rewrite ^/admin-dev/?$ /admin-dev/index.php last;
 		}
 
 		proxy_pass	http://docker_webserver;		
