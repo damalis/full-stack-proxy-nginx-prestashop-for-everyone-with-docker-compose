@@ -321,7 +321,7 @@ Password: admin123
 
 ##### if You see the "For security reasons, you cannot connect to the back office until you have:" page in your browser.
 
-change value of ```PS_TRUSTED_PROXIES``` to proxy container ip address in the ```./prestashop/.env``` file.
+change value of ```PS_TRUSTED_PROXIES``` with `127.0.0.1,REMOTE_ADDR` in the ```./prestashop/.env``` file.
 
 add or remove code in the ./php-fpm/php/conf.d/security.ini file for custom php.ini configurations
 
